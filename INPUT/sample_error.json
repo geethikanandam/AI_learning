@@ -1,0 +1,409 @@
+[
+  {
+    "problem": "Run databricks workspace ls /\nDatabricks CLI version 0.205.0\n\nConfiguring Databricks authentication using environment variables\nDATABRICKS_AUTH_TYPE=azure-client-secret\nDATABRICKS_HOST=https://adb-123456789012.3.azuredatabricks.net\n\nError: failed to configure Databricks client\n\nAttempting Azure Service Principal authentication\nReading environment variables:\n- AZURE_CLIENT_ID\n- AZURE_TENANT_ID\n- AZURE_CLIENT_SECRET\n\nError: missing required Azure authentication variables\n\nDetails:\nAZURE_CLIENT_ID found\nAZURE_TENANT_ID found\nAZURE_CLIENT_SECRET not found\n\nDatabricks SDK attempted fallback authentication\nTrying Databricks PAT authentication\nDATABRICKS_TOKEN not set\n\nTrying Azure Managed Identity authentication\nManaged identity endpoint unreachable\n\nAzure AD authentication failed\nStatusCode: 401\nResponse error: {\n  \"error\": \"invalid_client\",\n  \"error_description\": \"AADSTS7000215: Invalid client secret is provided. Ensure the secret being sent in the request is the client secret value, not the client secret ID. Trace ID: 9f21a3c7-6c91-4a9f-babc-5332d012cc90 Correlation ID: 6b8bfa9e-d74d-47b5-a2cf-9bc0d37d03fd Timestamp: 2026-03-27 07:38:52Z\"\n}\n\nDatabricks CLI error:\ncannot complete authentication flow\nno valid authentication method configured\n\nStack trace:\nError: cannot create Databricks Workspace client\n  at auth/azure.go:142\n  at config/load.go:87\n  at root/run.go:54\n\nEnvironment variables detected in runner:\n- ARM_CLIENT_ID\n- ARM_CLIENT_SECRET\n- ARM_TENANT_ID\n\nExpected variables:\n- AZURE_CLIENT_ID\n- AZURE_CLIENT_SECRET\n- AZURE_TENANT_ID\n\nNote: Azure Terraform-style variables (ARM_*) are not supported by Databricks CLI\n\n##[error]Databricks authentication failed\n##[error]Process completed with exit code 1\n\nCleaning up workspace directory\nSkipping downstream deployment steps\nJob databricks-deploy failed",
+    "solution": "The error occurs because SPN credentials were provided using ARM_* variables while Databricks expects AZURE_* variables. Align the environment variable names with the authentication method used by Databricks (`azure-client-secret`). Ensure AZURE_CLIENT_ID, AZURE_CLIENT_SECRET, and AZURE_TENANT_ID are all correctly set as GitHub Secrets. Re-run the pipeline after confirming variable names and values match Databricks requirements."
+  }, {
+    "problem": "Starting job: deploy-preprod\n\nUsing environment: preprod\nLoading environment secrets and variables\n- DATABRICKS_HOST\n- DATABRICKS_AUTH_TYPE\n- AZURE_CLIENT_ID\n- AZURE_CLIENT_SECRET\n- AZURE_TENANT_ID\n\nDatabricks authentication initialization started\nDATABRICKS_AUTH_TYPE=azure-client-secret\n\nValidating environment variables\nChecking DATABRICKS_HOST...\nValue found: https://adb-987654321098.5.azuredatabricks.net\n\nChecking AZURE_CLIENT_ID...\nValue found\n\nChecking AZURE_TENANT_ID...\nValue found\n\nChecking AZURE_CLIENT_SECRET...\nValue NOT found\n\nAzure authentication configuration invalid for environment: preprod\n\nAttempting fallback authentication methods\nTrying Databricks PAT authentication\nDATABRICKS_TOKEN not defined in environment preprod\n\nTrying Azure Managed Identity authentication\nManaged Identity not enabled on GitHub-hosted runner\n\nAzure AD authentication attempt failed\nResponse status: 401 Unauthorized\n\nAADSTS700016: Application identifier was not found in the directory. This can happen if the application has not been installed by the administrator of the tenant or consented to by any user. You might have sent your authentication request to the wrong tenant.\nTrace ID: e2a7c4b3-8bb2-4dd9-b5cb-91c49cfcfa12\nCorrelation ID: 79ff1bfa-8e5e-49e7-93df-1c15cde7a44d\nTimestamp: 2026-03-27 09:21:14Z\n\nDetected environment mismatch\nExpected variables in preprod:\n- AZURE_CLIENT_ID\n- AZURE_CLIENT_SECRET\n- AZURE_TENANT_ID\n\nAvailable variables in preprod:\n- AZURE_CLIENT_ID\n- AZURE_TENANT_ID\n- ARM_CLIENT_SECRET\n\nError: ARM_CLIENT_SECRET detected but AZURE_CLIENT_SECRET required\n\nNote: dev and qa environments use AZURE_CLIENT_SECRET\nNote: preprod environment configured with ARM_CLIENT_SECRET\n\nDatabricks client initialization failed\nUnable to create workspace connection\n\nStack trace:\nError: cannot configure Databricks Azure credentials\n  at auth/azure_client_secret.go:113\n  at config/environment.go:92\n  at cmd/deploy.go:67\n\n##[error]Databricks authentication failed for environment preprod\n##[error]Deployment aborted due to configuration mismatch\n\nSkipping deployment step for preprod\nSkipping validation step\nSkipping downstream prod approval job\n\nCleaning up runner workspace\nJob deploy-preprod failed with exit code 1",
+    "solution": "The error is caused by mismatched environment variable names between environments. The preprod job uses ARM_CLIENT_SECRET, while the Databricks Azure client-secret authentication expects AZURE_CLIENT_SECRET. Standardize environment variable names across dev, qa, preprod, and prod. Update the preprod environment configuration and re-run the pipeline."
+  },{
+    "problem": "Run step: SPN Authentication\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:03Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for SPN Authentication\n----\nOperation failed\nError detail: AADSTS7000222: client secret expired\nRequestId: 724735-6393\nStatus: Failed\nAttempting retries: none\n----\n##[error]AADSTS7000222: client secret expired\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Rotate the SPN client secret in Azure AD, copy the **secret value**, update the GitHub Actions secret, and rerun the workflow. Consider monitoring secret expiry dates."
+  },
+  {
+    "problem": "Run step: SPN Authentication\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:10Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for SPN Authentication\n----\nOperation failed\nError detail: AADSTS700016: application not found in tenant\nRequestId: 125691-2870\nStatus: Failed\nAttempting retries: none\n----\n##[error]AADSTS700016: application not found in tenant\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Verify the application (client) ID exists in the specified tenant and update AZURE_TENANT_ID. Ensure admin consent is granted, then rerun."
+  },
+  {
+    "problem": "Run step: SPN Authentication\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:17Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for SPN Authentication\n----\nOperation failed\nError detail: invalid_client: secret value incorrect\nRequestId: 183061-7002\nStatus: Failed\nAttempting retries: none\n----\n##[error]invalid_client: secret value incorrect\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Confirm the secret **value** (not secret ID) is stored in GitHub Secrets. Re-copy the value from Azure AD and rerun."
+  },
+  {
+    "problem": "Run step: SPN Authentication\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:24Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for SPN Authentication\n----\nOperation failed\nError detail: client assertion audience mismatch\nRequestId: 594049-7651\nStatus: Failed\nAttempting retries: none\n----\n##[error]client assertion audience mismatch\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Update the audience to https://login.microsoftonline.com/<tenant>/v2.0 in your auth configuration and rerun."
+  },
+  {
+    "problem": "Run step: SPN Authentication\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:31Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for SPN Authentication\n----\nOperation failed\nError detail: workload identity configured but client-secret auth used\nRequestId: 863261-7354\nStatus: Failed\nAttempting retries: none\n----\n##[error]workload identity configured but client-secret auth used\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Switch authentication to workload identity or remove client-secret fields. Align the workflow auth method and retry."
+  },
+  {
+    "problem": "Run step: SPN Authentication\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:38Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for SPN Authentication\n----\nOperation failed\nError detail: SPN disabled in Azure AD\nRequestId: 892047-6537\nStatus: Failed\nAttempting retries: none\n----\n##[error]SPN disabled in Azure AD\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Re-enable the Service Principal in Azure AD or create a new one and update credentials."
+  },
+  {
+    "problem": "Run step: SPN Authentication\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:45Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for SPN Authentication\n----\nOperation failed\nError detail: SPN deleted\nRequestId: 918382-5740\nStatus: Failed\nAttempting retries: none\n----\n##[error]SPN deleted\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Recreate the Service Principal, reassign roles, update secrets, and rerun the pipeline."
+  },
+  {
+    "problem": "Run step: SPN Authentication\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:52Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for SPN Authentication\n----\nOperation failed\nError detail: tenant mismatch between subscription and SPN\nRequestId: 222116-9361\nStatus: Failed\nAttempting retries: none\n----\n##[error]tenant mismatch between subscription and SPN\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Use the tenant associated with the subscription where resources exist and update the workflow."
+  },
+  {
+    "problem": "Run step: SPN Authentication\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:59Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for SPN Authentication\n----\nOperation failed\nError detail: clock skew caused token validation failure\nRequestId: 196717-6620\nStatus: Failed\nAttempting retries: none\n----\n##[error]clock skew caused token validation failure\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Ensure runner time sync is correct or retry. If persistent, use hosted runners."
+  },
+  {
+    "problem": "Run step: SPN Authentication\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:29:06Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for SPN Authentication\n----\nOperation failed\nError detail: invalid scope requested\nRequestId: 777544-6678\nStatus: Failed\nAttempting retries: none\n----\n##[error]invalid scope requested\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Update requested scopes to match resource requirements and rerun authentication."
+  },
+  {
+    "problem": "Run step: Storage Access\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:03Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Storage Access\n----\nOperation failed\nError detail: AuthorizationPermissionMismatch\nRequestId: 137699-1614\nStatus: Failed\nAttempting retries: none\n----\n##[error]AuthorizationPermissionMismatch\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Assign Storage Blob Data Contributor at the correct scope and wait for RBAC propagation."
+  },
+  {
+    "problem": "Run step: Storage Access\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:10Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Storage Access\n----\nOperation failed\nError detail: Storage firewall blocked runner\nRequestId: 999074-1485\nStatus: Failed\nAttempting retries: none\n----\n##[error]Storage firewall blocked runner\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Allow trusted Microsoft services or add required IP ranges to firewall rules."
+  },
+  {
+    "problem": "Run step: Storage Access\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:17Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Storage Access\n----\nOperation failed\nError detail: Blob endpoint DNS resolution failed\nRequestId: 824535-1910\nStatus: Failed\nAttempting retries: none\n----\n##[error]Blob endpoint DNS resolution failed\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Verify private endpoint DNS configuration or use public endpoint appropriately."
+  },
+  {
+    "problem": "Run step: Storage Access\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:24Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Storage Access\n----\nOperation failed\nError detail: SAS token expired\nRequestId: 538977-2688\nStatus: Failed\nAttempting retries: none\n----\n##[error]SAS token expired\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Regenerate a SAS token with sufficient expiry and permissions, then rerun."
+  },
+  {
+    "problem": "Run step: Storage Access\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:31Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Storage Access\n----\nOperation failed\nError detail: Hierarchical namespace disabled\nRequestId: 134974-9753\nStatus: Failed\nAttempting retries: none\n----\n##[error]Hierarchical namespace disabled\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Enable HNS for ADLS Gen2 features or change the target account."
+  },
+  {
+    "problem": "Run step: Storage Access\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:38Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Storage Access\n----\nOperation failed\nError detail: Container does not exist\nRequestId: 928943-5811\nStatus: Failed\nAttempting retries: none\n----\n##[error]Container does not exist\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Create the container or correct the container name in configuration."
+  },
+  {
+    "problem": "Run step: Storage Access\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:45Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Storage Access\n----\nOperation failed\nError detail: Read permission missing\nRequestId: 754169-6702\nStatus: Failed\nAttempting retries: none\n----\n##[error]Read permission missing\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Grant read/list permissions to the SPN and retry."
+  },
+  {
+    "problem": "Run step: Storage Access\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:52Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Storage Access\n----\nOperation failed\nError detail: Write permission missing\nRequestId: 337367-8870\nStatus: Failed\nAttempting retries: none\n----\n##[error]Write permission missing\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Grant write permissions on the target container and retry."
+  },
+  {
+    "problem": "Run step: Storage Access\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:59Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Storage Access\n----\nOperation failed\nError detail: Cross-tenant access blocked\nRequestId: 916149-8172\nStatus: Failed\nAttempting retries: none\n----\n##[error]Cross-tenant access blocked\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Configure cross-tenant access policies or move resources to the same tenant."
+  },
+  {
+    "problem": "Run step: Storage Access\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:29:06Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Storage Access\n----\nOperation failed\nError detail: Soft-delete retention blocked overwrite\nRequestId: 328586-2001\nStatus: Failed\nAttempting retries: none\n----\n##[error]Soft-delete retention blocked overwrite\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Purge or version blobs correctly, then retry the operation."
+  },
+  {
+    "problem": "Run step: Environment Config\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:03Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Environment Config\n----\nOperation failed\nError detail: DATABRICKS_HOST misspelled\nRequestId: 941884-7718\nStatus: Failed\nAttempting retries: none\n----\n##[error]DATABRICKS_HOST misspelled\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Correct the variable name to DATABRICKS_HOST and rerun."
+  },
+  {
+    "problem": "Run step: Environment Config\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:10Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Environment Config\n----\nOperation failed\nError detail: AZURE_CLIENT_SECRET missing in QA\nRequestId: 168614-5740\nStatus: Failed\nAttempting retries: none\n----\n##[error]AZURE_CLIENT_SECRET missing in QA\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Add the missing secret to the QA environment scope and retry."
+  },
+  {
+    "problem": "Run step: Environment Config\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:17Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Environment Config\n----\nOperation failed\nError detail: PROD using DEV secrets\nRequestId: 729180-6872\nStatus: Failed\nAttempting retries: none\n----\n##[error]PROD using DEV secrets\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Update workflow environment scoping so PROD uses only PROD secrets."
+  },
+  {
+    "problem": "Run step: Environment Config\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:24Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Environment Config\n----\nOperation failed\nError detail: Case-sensitive variable mismatch\nRequestId: 188078-5608\nStatus: Failed\nAttempting retries: none\n----\n##[error]Case-sensitive variable mismatch\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Fix variable casing to match exactly what the tool expects."
+  },
+  {
+    "problem": "Run step: Environment Config\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:31Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Environment Config\n----\nOperation failed\nError detail: Environment override not applied\nRequestId: 132907-8912\nStatus: Failed\nAttempting retries: none\n----\n##[error]Environment override not applied\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Ensure the job specifies the correct environment block."
+  },
+  {
+    "problem": "Run step: Environment Config\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:38Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Environment Config\n----\nOperation failed\nError detail: Shadowed variable from repo secret\nRequestId: 458712-2483\nStatus: Failed\nAttempting retries: none\n----\n##[error]Shadowed variable from repo secret\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Remove duplicate secret definitions and keep a single source."
+  },
+  {
+    "problem": "Run step: Environment Config\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:45Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Environment Config\n----\nOperation failed\nError detail: Incorrect prefix used\nRequestId: 872535-8260\nStatus: Failed\nAttempting retries: none\n----\n##[error]Incorrect prefix used\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Align variable prefixes (AZURE_ vs ARM_) with the tool used."
+  },
+  {
+    "problem": "Run step: Environment Config\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:52Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Environment Config\n----\nOperation failed\nError detail: Empty variable injected\nRequestId: 898005-8755\nStatus: Failed\nAttempting retries: none\n----\n##[error]Empty variable injected\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Verify secret value is not empty and re-save in GitHub."
+  },
+  {
+    "problem": "Run step: Environment Config\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:59Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Environment Config\n----\nOperation failed\nError detail: Wrong environment selected\nRequestId: 756027-6889\nStatus: Failed\nAttempting retries: none\n----\n##[error]Wrong environment selected\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Update workflow conditions to target the intended environment."
+  },
+  {
+    "problem": "Run step: Environment Config\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:29:06Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Environment Config\n----\nOperation failed\nError detail: Stale secret cache\nRequestId: 828370-4995\nStatus: Failed\nAttempting retries: none\n----\n##[error]Stale secret cache\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Re-save secrets to refresh cache and rerun the job."
+  },
+  {
+    "problem": "Run step: Timeouts\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:03Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Timeouts\n----\nOperation failed\nError detail: Runner heartbeat lost\nRequestId: 221318-2695\nStatus: Failed\nAttempting retries: none\n----\n##[error]Runner heartbeat lost\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Rerun the job. If frequent, switch runner type or reduce job duration."
+  },
+  {
+    "problem": "Run step: Timeouts\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:10Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Timeouts\n----\nOperation failed\nError detail: Databricks API timeout\nRequestId: 848404-5283\nStatus: Failed\nAttempting retries: none\n----\n##[error]Databricks API timeout\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Increase client timeout or add retries around the API call."
+  },
+  {
+    "problem": "Run step: Timeouts\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:17Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Timeouts\n----\nOperation failed\nError detail: Azure throttling timeout\nRequestId: 983899-4086\nStatus: Failed\nAttempting retries: none\n----\n##[error]Azure throttling timeout\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Implement exponential backoff and retry the job."
+  },
+  {
+    "problem": "Run step: Timeouts\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:24Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Timeouts\n----\nOperation failed\nError detail: Long tests exceeded job timeout\nRequestId: 182800-7469\nStatus: Failed\nAttempting retries: none\n----\n##[error]Long tests exceeded job timeout\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Increase job timeout or split tests into smaller jobs."
+  },
+  {
+    "problem": "Run step: Timeouts\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:31Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Timeouts\n----\nOperation failed\nError detail: Network transient failure\nRequestId: 747173-8815\nStatus: Failed\nAttempting retries: none\n----\n##[error]Network transient failure\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Rerun the pipeline. Add retries for network calls."
+  },
+  {
+    "problem": "Run step: Timeouts\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:38Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Timeouts\n----\nOperation failed\nError detail: Cluster start timeout\nRequestId: 166867-5173\nStatus: Failed\nAttempting retries: none\n----\n##[error]Cluster start timeout\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Increase cluster startup timeout or use an existing cluster."
+  },
+  {
+    "problem": "Run step: Timeouts\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:45Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Timeouts\n----\nOperation failed\nError detail: Artifact upload timeout\nRequestId: 954654-8491\nStatus: Failed\nAttempting retries: none\n----\n##[error]Artifact upload timeout\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Reduce artifact size or increase timeout."
+  },
+  {
+    "problem": "Run step: Timeouts\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:52Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Timeouts\n----\nOperation failed\nError detail: Dependency download timeout\nRequestId: 200857-4162\nStatus: Failed\nAttempting retries: none\n----\n##[error]Dependency download timeout\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Add caching for dependencies and rerun."
+  },
+  {
+    "problem": "Run step: Timeouts\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:59Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Timeouts\n----\nOperation failed\nError detail: Job queue delay exceeded\nRequestId: 834351-4291\nStatus: Failed\nAttempting retries: none\n----\n##[error]Job queue delay exceeded\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Reduce concurrency or use self-hosted runners."
+  },
+  {
+    "problem": "Run step: Timeouts\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:29:06Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Timeouts\n----\nOperation failed\nError detail: Idle timeout killed step\nRequestId: 228122-9219\nStatus: Failed\nAttempting retries: none\n----\n##[error]Idle timeout killed step\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Keep process alive or adjust idle timeout settings."
+  },
+  {
+    "problem": "Run step: Package Install\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:03Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Package Install\n----\nOperation failed\nError detail: pip dependency conflict\nRequestId: 995150-6880\nStatus: Failed\nAttempting retries: none\n----\n##[error]pip dependency conflict\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Resolve conflicting versions in requirements.txt and lock dependencies."
+  },
+  {
+    "problem": "Run step: Package Install\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:10Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Package Install\n----\nOperation failed\nError detail: npm peer dependency failure\nRequestId: 770442-5045\nStatus: Failed\nAttempting retries: none\n----\n##[error]npm peer dependency failure\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Upgrade/downgrade packages to satisfy peer dependencies."
+  },
+  {
+    "problem": "Run step: Package Install\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:17Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Package Install\n----\nOperation failed\nError detail: Native wheel build failed\nRequestId: 789606-7275\nStatus: Failed\nAttempting retries: none\n----\n##[error]Native wheel build failed\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Install required system libraries before pip install."
+  },
+  {
+    "problem": "Run step: Package Install\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:24Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Package Install\n----\nOperation failed\nError detail: Repository unreachable\nRequestId: 554526-8657\nStatus: Failed\nAttempting retries: none\n----\n##[error]Repository unreachable\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Check network access to package registry and retry."
+  },
+  {
+    "problem": "Run step: Package Install\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:31Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Package Install\n----\nOperation failed\nError detail: Python version incompatible\nRequestId: 447552-3795\nStatus: Failed\nAttempting retries: none\n----\n##[error]Python version incompatible\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Match Python version with package requirements."
+  },
+  {
+    "problem": "Run step: Package Install\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:38Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Package Install\n----\nOperation failed\nError detail: Node version incompatible\nRequestId: 744229-9726\nStatus: Failed\nAttempting retries: none\n----\n##[error]Node version incompatible\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Set the correct Node.js version using setup-node."
+  },
+  {
+    "problem": "Run step: Package Install\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:45Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Package Install\n----\nOperation failed\nError detail: Checksum mismatch\nRequestId: 397419-9494\nStatus: Failed\nAttempting retries: none\n----\n##[error]Checksum mismatch\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Clear cache and re-download packages."
+  },
+  {
+    "problem": "Run step: Package Install\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:52Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Package Install\n----\nOperation failed\nError detail: Private registry auth failed\nRequestId: 369404-6209\nStatus: Failed\nAttempting retries: none\n----\n##[error]Private registry auth failed\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Configure registry credentials in the workflow."
+  },
+  {
+    "problem": "Run step: Package Install\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:59Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Package Install\n----\nOperation failed\nError detail: Lockfile out of sync\nRequestId: 144504-3605\nStatus: Failed\nAttempting retries: none\n----\n##[error]Lockfile out of sync\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Regenerate lockfile and commit the changes."
+  },
+  {
+    "problem": "Run step: Package Install\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:29:06Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Package Install\n----\nOperation failed\nError detail: Disk space exhaustion\nRequestId: 393703-9969\nStatus: Failed\nAttempting retries: none\n----\n##[error]Disk space exhaustion\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Clean runner disk or reduce dependency footprint."
+  },
+  {
+    "problem": "Run step: Security Scan\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:03Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Security Scan\n----\nOperation failed\nError detail: Hardcoded DB password\nRequestId: 794508-2434\nStatus: Failed\nAttempting retries: none\n----\n##[error]Hardcoded DB password\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Remove the secret, rotate credentials, and store them in GitHub Secrets."
+  },
+  {
+    "problem": "Run step: Security Scan\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:10Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Security Scan\n----\nOperation failed\nError detail: API key exposed\nRequestId: 252114-1944\nStatus: Failed\nAttempting retries: none\n----\n##[error]API key exposed\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Revoke and rotate the API key, then remove it from code."
+  },
+  {
+    "problem": "Run step: Security Scan\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:17Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Security Scan\n----\nOperation failed\nError detail: OAuth token committed\nRequestId: 827940-9349\nStatus: Failed\nAttempting retries: none\n----\n##[error]OAuth token committed\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Revoke the token immediately and update auth flow."
+  },
+  {
+    "problem": "Run step: Security Scan\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:24Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Security Scan\n----\nOperation failed\nError detail: Connection string exposed\nRequestId: 695126-2533\nStatus: Failed\nAttempting retries: none\n----\n##[error]Connection string exposed\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Move the connection string to a secret store."
+  },
+  {
+    "problem": "Run step: Security Scan\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:31Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Security Scan\n----\nOperation failed\nError detail: Secret in comments\nRequestId: 119252-7971\nStatus: Failed\nAttempting retries: none\n----\n##[error]Secret in comments\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Remove secrets from comments and rotate affected credentials."
+  },
+  {
+    "problem": "Run step: Security Scan\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:38Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Security Scan\n----\nOperation failed\nError detail: Secret in test data\nRequestId: 744387-8318\nStatus: Failed\nAttempting retries: none\n----\n##[error]Secret in test data\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Sanitize test fixtures and rotate secrets."
+  },
+  {
+    "problem": "Run step: Security Scan\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:45Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Security Scan\n----\nOperation failed\nError detail: JWT token committed\nRequestId: 314980-6287\nStatus: Failed\nAttempting retries: none\n----\n##[error]JWT token committed\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Invalidate the token and update generation logic."
+  },
+  {
+    "problem": "Run step: Security Scan\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:52Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Security Scan\n----\nOperation failed\nError detail: Private key committed\nRequestId: 533166-5002\nStatus: Failed\nAttempting retries: none\n----\n##[error]Private key committed\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Revoke and regenerate the key immediately."
+  },
+  {
+    "problem": "Run step: Security Scan\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:59Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Security Scan\n----\nOperation failed\nError detail: Password in YAML\nRequestId: 440237-1926\nStatus: Failed\nAttempting retries: none\n----\n##[error]Password in YAML\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Replace with environment variable reference and rotate password."
+  },
+  {
+    "problem": "Run step: Security Scan\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:29:06Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Security Scan\n----\nOperation failed\nError detail: Token logged in debug\nRequestId: 358242-3606\nStatus: Failed\nAttempting retries: none\n----\n##[error]Token logged in debug\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Remove debug logging and rotate the exposed token."
+  },
+  {
+    "problem": "Run step: Coverage\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:03Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Coverage\n----\nOperation failed\nError detail: Overall coverage below 80%\nRequestId: 340670-7945\nStatus: Failed\nAttempting retries: none\n----\n##[error]Overall coverage below 80%\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Add tests to increase coverage and rerun."
+  },
+  {
+    "problem": "Run step: Coverage\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:10Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Coverage\n----\nOperation failed\nError detail: Branch coverage insufficient\nRequestId: 701432-3033\nStatus: Failed\nAttempting retries: none\n----\n##[error]Branch coverage insufficient\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Add tests covering missing branches."
+  },
+  {
+    "problem": "Run step: Coverage\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:17Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Coverage\n----\nOperation failed\nError detail: New file uncovered\nRequestId: 972468-3881\nStatus: Failed\nAttempting retries: none\n----\n##[error]New file uncovered\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Write tests for the new file."
+  },
+  {
+    "problem": "Run step: Coverage\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:24Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Coverage\n----\nOperation failed\nError detail: Coverage report missing\nRequestId: 202258-4603\nStatus: Failed\nAttempting retries: none\n----\n##[error]Coverage report missing\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Ensure coverage report path is correct."
+  },
+  {
+    "problem": "Run step: Coverage\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:31Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Coverage\n----\nOperation failed\nError detail: Tests skipped\nRequestId: 196683-3306\nStatus: Failed\nAttempting retries: none\n----\n##[error]Tests skipped\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Remove skip markers or fix conditions."
+  },
+  {
+    "problem": "Run step: Coverage\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:38Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Coverage\n----\nOperation failed\nError detail: Incorrect coverage config\nRequestId: 471882-1862\nStatus: Failed\nAttempting retries: none\n----\n##[error]Incorrect coverage config\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Fix coverage configuration file."
+  },
+  {
+    "problem": "Run step: Coverage\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:45Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Coverage\n----\nOperation failed\nError detail: Excluded files too broad\nRequestId: 111544-5121\nStatus: Failed\nAttempting retries: none\n----\n##[error]Excluded files too broad\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Narrow exclusions to include relevant files."
+  },
+  {
+    "problem": "Run step: Coverage\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:52Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Coverage\n----\nOperation failed\nError detail: Test discovery failed\nRequestId: 311085-5451\nStatus: Failed\nAttempting retries: none\n----\n##[error]Test discovery failed\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Fix test naming or paths."
+  },
+  {
+    "problem": "Run step: Coverage\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:59Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Coverage\n----\nOperation failed\nError detail: Coverage tool mismatch\nRequestId: 317032-8419\nStatus: Failed\nAttempting retries: none\n----\n##[error]Coverage tool mismatch\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Align coverage tool versions."
+  },
+  {
+    "problem": "Run step: Coverage\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:29:06Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Coverage\n----\nOperation failed\nError detail: Parallel coverage merge failed\nRequestId: 992182-1302\nStatus: Failed\nAttempting retries: none\n----\n##[error]Parallel coverage merge failed\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Configure coverage data merging correctly."
+  },
+  {
+    "problem": "Run step: Sonar Rules\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:03Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Sonar Rules\n----\nOperation failed\nError detail: Line length > 120\nRequestId: 176315-6192\nStatus: Failed\nAttempting retries: none\n----\n##[error]Line length > 120\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Break the line into smaller logical lines."
+  },
+  {
+    "problem": "Run step: Sonar Rules\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:10Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Sonar Rules\n----\nOperation failed\nError detail: Cognitive complexity > 15\nRequestId: 533694-5638\nStatus: Failed\nAttempting retries: none\n----\n##[error]Cognitive complexity > 15\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Refactor the function into smaller units."
+  },
+  {
+    "problem": "Run step: Sonar Rules\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:17Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Sonar Rules\n----\nOperation failed\nError detail: Code duplication\nRequestId: 182336-1325\nStatus: Failed\nAttempting retries: none\n----\n##[error]Code duplication\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Extract shared logic and remove duplicates."
+  },
+  {
+    "problem": "Run step: Sonar Rules\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:24Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Sonar Rules\n----\nOperation failed\nError detail: Unused imports\nRequestId: 927650-1773\nStatus: Failed\nAttempting retries: none\n----\n##[error]Unused imports\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Remove unused imports."
+  },
+  {
+    "problem": "Run step: Sonar Rules\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:31Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Sonar Rules\n----\nOperation failed\nError detail: Cyclomatic complexity high\nRequestId: 579676-6178\nStatus: Failed\nAttempting retries: none\n----\n##[error]Cyclomatic complexity high\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Simplify control flow and refactor."
+  },
+  {
+    "problem": "Run step: Sonar Rules\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:38Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Sonar Rules\n----\nOperation failed\nError detail: Code smells threshold\nRequestId: 543617-1246\nStatus: Failed\nAttempting retries: none\n----\n##[error]Code smells threshold\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Address reported code smells."
+  },
+  {
+    "problem": "Run step: Sonar Rules\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:45Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Sonar Rules\n----\nOperation failed\nError detail: Security hotspot\nRequestId: 895687-6706\nStatus: Failed\nAttempting retries: none\n----\n##[error]Security hotspot\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Review and fix the security hotspot."
+  },
+  {
+    "problem": "Run step: Sonar Rules\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:52Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Sonar Rules\n----\nOperation failed\nError detail: Bug count exceeded\nRequestId: 402006-4417\nStatus: Failed\nAttempting retries: none\n----\n##[error]Bug count exceeded\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Fix reported bugs before rerun."
+  },
+  {
+    "problem": "Run step: Sonar Rules\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:59Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Sonar Rules\n----\nOperation failed\nError detail: Quality gate timeout\nRequestId: 934527-8026\nStatus: Failed\nAttempting retries: none\n----\n##[error]Quality gate timeout\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Increase analysis timeout or reduce scope."
+  },
+  {
+    "problem": "Run step: Sonar Rules\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:29:06Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Sonar Rules\n----\nOperation failed\nError detail: Wrong project key\nRequestId: 708635-3221\nStatus: Failed\nAttempting retries: none\n----\n##[error]Wrong project key\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Update sonar.projectKey to the correct value."
+  },
+  {
+    "problem": "Run step: Formatting (Black)\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:03Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Formatting (Black)\n----\nOperation failed\nError detail: Black would reformat files\nRequestId: 536138-4209\nStatus: Failed\nAttempting retries: none\n----\n##[error]Black would reformat files\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Run black locally and commit changes."
+  },
+  {
+    "problem": "Run step: Formatting (Black)\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:10Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Formatting (Black)\n----\nOperation failed\nError detail: Import order incorrect\nRequestId: 661374-2837\nStatus: Failed\nAttempting retries: none\n----\n##[error]Import order incorrect\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Apply Black formatting to fix imports."
+  },
+  {
+    "problem": "Run step: Formatting (Black)\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:17Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Formatting (Black)\n----\nOperation failed\nError detail: Trailing whitespace\nRequestId: 290310-7458\nStatus: Failed\nAttempting retries: none\n----\n##[error]Trailing whitespace\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Remove trailing whitespace and reformat."
+  },
+  {
+    "problem": "Run step: Formatting (Black)\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:24Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Formatting (Black)\n----\nOperation failed\nError detail: Quote normalization failed\nRequestId: 740331-9979\nStatus: Failed\nAttempting retries: none\n----\n##[error]Quote normalization failed\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Let Black normalize quotes."
+  },
+  {
+    "problem": "Run step: Formatting (Black)\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:31Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Formatting (Black)\n----\nOperation failed\nError detail: Formatter version mismatch\nRequestId: 737035-7556\nStatus: Failed\nAttempting retries: none\n----\n##[error]Formatter version mismatch\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Align Black version locally and in CI."
+  },
+  {
+    "problem": "Run step: Formatting (Black)\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:38Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Formatting (Black)\n----\nOperation failed\nError detail: Line length conflict\nRequestId: 144464-9551\nStatus: Failed\nAttempting retries: none\n----\n##[error]Line length conflict\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Adjust code to Black's formatting."
+  },
+  {
+    "problem": "Run step: Formatting (Black)\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:45Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Formatting (Black)\n----\nOperation failed\nError detail: Encoding issue\nRequestId: 492082-1397\nStatus: Failed\nAttempting retries: none\n----\n##[error]Encoding issue\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Fix file encoding and rerun Black."
+  },
+  {
+    "problem": "Run step: Formatting (Black)\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:52Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Formatting (Black)\n----\nOperation failed\nError detail: Excluded path misconfigured\nRequestId: 198349-6829\nStatus: Failed\nAttempting retries: none\n----\n##[error]Excluded path misconfigured\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Update Black exclude configuration."
+  },
+  {
+    "problem": "Run step: Formatting (Black)\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:59Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Formatting (Black)\n----\nOperation failed\nError detail: Generated files included\nRequestId: 712610-1186\nStatus: Failed\nAttempting retries: none\n----\n##[error]Generated files included\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Exclude generated files from formatting."
+  },
+  {
+    "problem": "Run step: Formatting (Black)\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:29:06Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Formatting (Black)\n----\nOperation failed\nError detail: Pre-commit mismatch\nRequestId: 114495-8715\nStatus: Failed\nAttempting retries: none\n----\n##[error]Pre-commit mismatch\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Align pre-commit Black config with CI."
+  },
+  {
+    "problem": "Run step: Databricks\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:03Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Databricks\n----\nOperation failed\nError detail: Workspace folder not found\nRequestId: 786691-6053\nStatus: Failed\nAttempting retries: none\n----\n##[error]Workspace folder not found\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Create the folder or correct the workspace path."
+  },
+  {
+    "problem": "Run step: Databricks\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:10Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Databricks\n----\nOperation failed\nError detail: Cluster policy not found\nRequestId: 990658-7822\nStatus: Failed\nAttempting retries: none\n----\n##[error]Cluster policy not found\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Update policy ID/name to an existing policy."
+  },
+  {
+    "problem": "Run step: Databricks\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:17Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Databricks\n----\nOperation failed\nError detail: Cluster auto-terminated\nRequestId: 243311-9383\nStatus: Failed\nAttempting retries: none\n----\n##[error]Cluster auto-terminated\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Increase auto-termination timeout or restart cluster."
+  },
+  {
+    "problem": "Run step: Databricks\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:24Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Databricks\n----\nOperation failed\nError detail: Invalid workspace URL\nRequestId: 675080-1517\nStatus: Failed\nAttempting retries: none\n----\n##[error]Invalid workspace URL\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Correct the Databricks workspace URL."
+  },
+  {
+    "problem": "Run step: Databricks\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:31Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Databricks\n----\nOperation failed\nError detail: Workspace API permission denied\nRequestId: 697670-1320\nStatus: Failed\nAttempting retries: none\n----\n##[error]Workspace API permission denied\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Grant required permissions to the SPN."
+  },
+  {
+    "problem": "Run step: Databricks\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:38Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Databricks\n----\nOperation failed\nError detail: Job already exists\nRequestId: 665033-8018\nStatus: Failed\nAttempting retries: none\n----\n##[error]Job already exists\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Update existing job or use a unique name."
+  },
+  {
+    "problem": "Run step: Databricks\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:45Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Databricks\n----\nOperation failed\nError detail: Library install failed\nRequestId: 263737-4111\nStatus: Failed\nAttempting retries: none\n----\n##[error]Library install failed\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Verify library compatibility and retry."
+  },
+  {
+    "problem": "Run step: Databricks\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:52Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Databricks\n----\nOperation failed\nError detail: Init script error\nRequestId: 888056-2683\nStatus: Failed\nAttempting retries: none\n----\n##[error]Init script error\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Fix init script and rerun cluster."
+  },
+  {
+    "problem": "Run step: Databricks\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:28:59Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Databricks\n----\nOperation failed\nError detail: Quota exceeded\nRequestId: 171080-2719\nStatus: Failed\nAttempting retries: none\n----\n##[error]Quota exceeded\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Request quota increase or reduce resource usage."
+  },
+  {
+    "problem": "Run step: Databricks\n/usr/bin/bash --noprofile --norc\nStarting job on ubuntu-latest\n2026-03-27T07:29:06Z Initializing runner\nLoading environment variables\nValidating configuration\nExecuting command for Databricks\n----\nOperation failed\nError detail: Invalid policy constraints\nRequestId: 787729-9999\nStatus: Failed\nAttempting retries: none\n----\n##[error]Invalid policy constraints\n##[error]Process completed with exit code 1\nCleaning up workspace",
+    "solution": "Adjust cluster configuration to meet policy."
+  }
+
+]

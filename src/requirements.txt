@@ -1,0 +1,7 @@
+langchain
+langchain-community
+jq
+langchain-core
+databricks-langchain
+langchain-chroma
+llm
